@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0b0b0b">
+  <title>Official Training Routine</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <style>
+    :root{
+      color-scheme:dark;
+      --bg:#0b0b0b;--card:#171717;--muted:#a3a3a3;--text:#fff;
+      --accent:#d32f2f;--border:#303030;--ok:#22c55e
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    .wrap{max-width:760px;margin:auto;padding:18px 14px 110px}
+    h1{font-size:28px;margin:4px 0 4px}
+    .sub{color:var(--muted);margin-bottom:18px}
+    .tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;position:sticky;top:0;background:rgba(11,11,11,.96);padding:10px 0;z-index:5}
+    .tab{border:1px solid var(--border);background:var(--card);color:#fff;padding:11px 6px;border-radius:12px;font-weight:700}
+    .tab.active{background:var(--accent);border-color:var(--accent)}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;margin:12px 0}
+    .exercise{font-weight:800;font-size:18px;margin-bottom:10px}
+    .setrow{display:grid;grid-template-columns:48px 1fr 1fr 48px;gap:8px;align-items:end;margin:8px 0}
+    label{font-size:12px;color:var(--muted)}
+    input,textarea,select{width:100%;background:#0f0f0f;color:white;border:1px solid var(--border);border-radius:10px;padding:12px;font-size:17px}
+    textarea{min-height:78px;resize:vertical}
+    .setnum{font-weight:800;text-align:center;padding-bottom:12px}
+    .done{display:flex;align-items:center;justify-content:center}
+    .done input{width:24px;height:24px}
+    .actions{display:flex;gap:10px;margin-top:16px}
+    button.primary,button.secondary{flex:1;border:0;border-radius:12px;padding:14px;font-size:16px;font-weight:800}
+    .primary{background:var(--accent);color:white}
+    .secondary{background:#262626;color:white;border:1px solid var(--border)!important}
+    .saved{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#181818;border:1px solid var(--border);padding:10px 14px;border-radius:999px;color:var(--ok);font-weight:700;opacity:0;transition:.2s}
+    .saved.show{opacity:1}
+    .weekline{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+    .goal-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;margin:12px 0}
+    .goal-top{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:10px}
+    .goal-title{font-weight:800}
+    .goal-value{font-weight:800;color:var(--ok)}
+    .progress-track{height:12px;background:#262626;border-radius:999px;overflow:hidden;border:1px solid var(--border)}
+    .progress-fill{height:100%;width:0;background:var(--accent);transition:width .25s}
+    .goal-note{margin-top:8px;color:var(--muted);font-size:13px}
+    @media(max-width:520px){
+      h1{font-size:24px}.tabs{grid-template-columns:repeat(2,1fr)}
+      .setrow{grid-template-columns:42px 1fr 1fr 42px}
+      .weekline{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>💪 Official Training Routine</h1>
+  <div class="sub">Train. Progress. Dominate.</div>
+
+  <div class="weekline">
+    <label>Semaine
+      <select id="week"></select>
+    </label>
+    <label>Poids actuel (lb)
+      <input id="bodyweight" inputmode="decimal" placeholder="ex. 223.4">
+    </label>
+    <label>Poids cible (lb)
+      <input id="targetweight" inputmode="decimal" placeholder="ex. 195">
+    </label>
+  </div>
+
+  <div class="goal-card">
+    <div class="goal-top">
+      <div class="goal-title">Progression vers l'objectif</div>
+      <div class="goal-value" id="remaining">—</div>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <div class="goal-note" id="goalNote">Entre ton poids actuel et ton poids cible.</div>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+  <div id="workout"></div>
+
+  <div class="card">
+    <div class="exercise">Notes de séance</div>
+    <textarea id="notes" placeholder="Énergie, douleurs, PR, technique, etc."></textarea>
+  </div>
+
+  <div class="actions">
+    <button class="secondary" id="copyPrev">Copier la semaine précédente</button>
+    <button class="primary" id="finish">Terminer la séance</button>
+  </div>
+</div>
+<div id="saved" class="saved">✓ Sauvegardé</div>
+
+<script>
+const plan = [
+  {name:"Chest / Mollets / Trapèzes", exercises:[
+    ["Bench Press Incline",4,"10–12"],["Dumbbell Flat Press",4,"10–12"],
+    ["Standing Cable Fly",5,"12–15"],["Pec Deck",5,"12–15"],
+    ["DB Shrugs",5,"12–15"],["Standing Calf Raise",4,""],
+    ["Standing Calf Smith Machine",3,""]
+  ]},
+  {name:"Épaules / Triceps", exercises:[
+    ["Barbell Overhead Press",4,"10–12"],["Lateral Raise Dumbbell",4,"10–15"],
+    ["Lateral Raise Cable",3,""],["Rear Delt Cable",3,""],
+    ["Rear Delt Pec Deck",3,"8–12"],["Rope Pushdown",4,"12–15"],
+    ["Dips",3,"10–12"],["Reverse Pushdown",4,""],
+    ["Phil Heath 1-Arm Pushdown",4,"12–15"]
+  ]},
+  {name:"Dos / Biceps", exercises:[
+    ["Dumbbell Row",4,"8–12"],["Barbell Row",3,"8–12"],
+    ["Pulldown Cable",3,"10–15"],["Dumbbell Curl",3,"10–12"],
+    ["Seated Dumbbell Curl",3,"10–12"],["Cable Curl",3,""],
+    ["Hammer Curl Cable",3,"8–12"]
+  ]},
+  {name:"Jambes / Mollets", exercises:[
+    ["1-Leg Press",4,""],
+    ["Lunges",4,""],
+    ["Leg Curl",4,""],
+    ["Front Squat",3,""],
+    ["Leg Adduction",3,""],
+    ["Reverse Leg Curl",3,""],
+    ["Standing Calf Raise",4,""],
+    ["Standing Calf Smith Machine",3,""]
+  ]}
+];
+
+let day = 0;
+const weekSel = document.getElementById("week");
+for(let i=1;i<=12;i++){const o=document.createElement("option");o.value=i;o.textContent="Semaine "+i;weekSel.appendChild(o)}
+
+const tabs=document.getElementById("tabs");
+const workout=document.getElementById("workout");
+const bodyweight=document.getElementById("bodyweight");
+const targetweight=document.getElementById("targetweight");
+const notes=document.getElementById("notes");
+const saved=document.getElementById("saved");
+const remaining=document.getElementById("remaining");
+const progressFill=document.getElementById("progressFill");
+const goalNote=document.getElementById("goalNote");
+
+function key(){return `otr-w${weekSel.value}-d${day}`}
+function getData(){return JSON.parse(localStorage.getItem(key())||'{"sets":{},"bodyweight":"","notes":""}')}
+function saveData(data){
+  localStorage.setItem(key(),JSON.stringify(data));
+  saved.classList.add("show");
+  setTimeout(()=>saved.classList.remove("show"),700)
+}
+function getTargetWeight(){return localStorage.getItem("otr-target-weight")||""}
+function setTargetWeight(value){localStorage.setItem("otr-target-weight",value)}
+
+function updateGoal(){
+  const current=parseFloat(bodyweight.value);
+  const target=parseFloat(targetweight.value);
+  if(!Number.isFinite(current)||!Number.isFinite(target)){
+    remaining.textContent="—";
+    progressFill.style.width="0%";
+    goalNote.textContent="Entre ton poids actuel et ton poids cible.";
+    return;
+  }
+
+  const diff=current-target;
+  if(diff<=0){
+    remaining.textContent="Objectif atteint 🎉";
+    progressFill.style.width="100%";
+    goalNote.textContent=`Tu es à ${current.toFixed(1)} lb pour une cible de ${target.toFixed(1)} lb.`;
+    return;
+  }
+
+  remaining.textContent=`${diff.toFixed(1)} lb restantes`;
+  const startWeight=parseFloat(localStorage.getItem("otr-start-weight")||current);
+  if(!localStorage.getItem("otr-start-weight")) localStorage.setItem("otr-start-weight",String(current));
+
+  const totalToLose=Math.max(startWeight-target,0.1);
+  const lost=Math.max(startWeight-current,0);
+  const pct=Math.max(0,Math.min(100,(lost/totalToLose)*100));
+  progressFill.style.width=pct.toFixed(1)+"%";
+  goalNote.textContent=`Progression : ${pct.toFixed(0)} % vers ${target.toFixed(1)} lb.`;
+}
+
+function renderTabs(){
+  tabs.innerHTML="";
+  plan.forEach((d,i)=>{
+    const b=document.createElement("button");
+    b.className="tab"+(i===day?" active":"");
+    b.textContent=`Jour ${i+1}`;
+    b.addEventListener("click",()=>{day=i;render()});
+    tabs.appendChild(b);
+  })
+}
+
+function render(){
+  renderTabs();
+  const data=getData();
+  bodyweight.value=data.bodyweight||"";
+  targetweight.value=getTargetWeight();
+  notes.value=data.notes||"";
+  updateGoal();
+  workout.innerHTML="";
+
+  plan[day].exercises.forEach((ex,ei)=>{
+    const card=document.createElement("div");
+    card.className="card";
+    card.innerHTML=`<div class="exercise">${ex[0]} <span style="color:var(--muted);font-size:14px">(${ex[1]} séries${ex[2]?" • "+ex[2]+" reps":""})</span></div>`;
+    for(let s=1;s<=ex[1];s++){
+      const id=`e${ei}s${s}`, val=data.sets[id]||{};
+      const row=document.createElement("div");
+      row.className="setrow";
+      row.innerHTML=`
+        <div class="setnum">S${s}</div>
+        <label>Poids (lb)<input inputmode="decimal" data-id="${id}" data-field="weight" value="${val.weight||""}"></label>
+        <label>Reps<input inputmode="numeric" data-id="${id}" data-field="reps" value="${val.reps||""}"></label>
+        <label class="done"><input type="checkbox" data-id="${id}" data-field="done" ${val.done?"checked":""}></label>`;
+      card.appendChild(row);
+    }
+    workout.appendChild(card);
+  });
+
+  workout.querySelectorAll("input").forEach(inp=>inp.addEventListener("input",()=>{
+    const d=getData();
+    const id=inp.dataset.id;
+    d.sets[id]=d.sets[id]||{};
+    d.sets[id][inp.dataset.field]=inp.type==="checkbox"?inp.checked:inp.value;
+    saveData(d);
+  }));
+}
+
+bodyweight.addEventListener("input",()=>{
+  const d=getData();
+  d.bodyweight=bodyweight.value;
+  saveData(d);
+  updateGoal();
+});
+
+targetweight.addEventListener("input",()=>{
+  setTargetWeight(targetweight.value);
+  updateGoal();
+  saved.classList.add("show");
+  setTimeout(()=>saved.classList.remove("show"),700);
+});
+
+notes.addEventListener("input",()=>{
+  const d=getData();
+  d.notes=notes.value;
+  saveData(d)
+});
+
+weekSel.addEventListener("change",render);
+
+document.getElementById("copyPrev").addEventListener("click",()=>{
+  const w=Number(weekSel.value);
+  if(w<=1){alert("Tu es déjà à la semaine 1.");return}
+  const prev=localStorage.getItem(`otr-w${w-1}-d${day}`);
+  if(!prev){alert("Aucune donnée trouvée dans la semaine précédente.");return}
+  localStorage.setItem(key(),prev);
+  render();
+  saveData(getData());
+});
+
+document.getElementById("finish").addEventListener("click",()=>{
+  const d=getData();
+  d.finishedAt=new Date().toISOString();
+  saveData(d);
+  alert("Séance sauvegardée 💪");
+});
+
+if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js")}
+render();
+</script>
+</body>
+</html>
